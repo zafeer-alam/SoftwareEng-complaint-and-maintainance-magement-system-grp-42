@@ -32,7 +32,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return data;
   } catch (error) {
     console.error('API Error:', error);
-    showToast(`❌ Error: ${error.message}`);
+    showToast(` Error: ${error.message}`);
     throw error;
   }
 }
