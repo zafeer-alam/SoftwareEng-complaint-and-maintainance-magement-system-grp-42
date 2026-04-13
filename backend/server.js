@@ -21,7 +21,12 @@ app.get("/", (req, res) => {
 });
 
 // DATABASE
-const mongoUri = process.env.MONGO_URI || "mongodb+srv://zafeeralam469_db_user:test123@MohdZafeer.vktlxej.mongodb.net/complaintDB";
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  console.error("Error: MONGO_URI environment variable is not set. Please check your .env file.");
+  process.exit(1);
+}
 
 mongoose.connect(mongoUri)
   .then(() => {
