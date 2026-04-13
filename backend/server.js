@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const User = require("./src/models/User");
 
 dotenv.config();
 const app = express();
@@ -28,9 +30,33 @@ if (!mongoUri) {
   process.exit(1);
 }
 
+async function createDemoUsers() {
+  const demoUsers = [
+    { name: "Admin User", email: "admin@e.com", password: "admin123", role: "admin" },
+    { name: "Staff User", email: "staff@e.com", password: "staff123", role: "staff" }
+  ];
+
+  for (const userData of demoUsers) {
+    const existingUser = await User.findOne({ email: userData.email });
+    if (!existingUser) {
+      const passwordHash = await bcrypt.hash(userData.password, 10);
+      await User.create({
+        name: userData.name,
+        email: userData.email,
+        password: passwordHash,
+        role: userData.role
+      });
+      console.log(`Demo user created: ${userData.email}`);
+    } else {
+      console.log(`Demo user already exists: ${userData.email}`);
+    }
+  }
+}
+
 mongoose.connect(mongoUri)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB Connected");
+    await createDemoUsers();
     app.listen(5000, () => console.log("Server running on port 5000"));
   })
   .catch(err => {
