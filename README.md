@@ -78,12 +78,18 @@ This system allows students and staff to submit maintenance complaints, track th
    ```
 
 3. **Environment Setup**
-   - Copy `.env.example` to `.env`
-   - Update MongoDB URI and JWT secret:
+   - Copy `.env.example` to `.env` in the `backend` folder
+   - Get your own MongoDB credentials:
+     1. Create account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+     2. Create a cluster and database
+     3. Create a database user with username and password
+     4. Copy the connection string
+   - Update `/backend/.env` with your credentials:
      ```
-     MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/complaintDB
+     MONGO_URI=mongodb+srv://your_username:your_password@your_cluster.mongodb.net/complaintDB
      JWT_SECRET=your_secure_jwt_secret_here
      ```
+   - **Important**: Never commit `.env` file to git (already in `.gitignore`)
 
 4. **Start MongoDB**
    - Ensure MongoDB Atlas cluster is running or local MongoDB is installed
