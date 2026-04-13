@@ -204,18 +204,6 @@ The existing HTML frontend provides a complete UI but currently uses mock data. 
 - **Audit Logs**: Track all complaint changes
 - **Mobile App**: React Native or PWA version
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is licensed under the ISC License.
-
 ---
 
 **Last Updated**: April 14, 2026
