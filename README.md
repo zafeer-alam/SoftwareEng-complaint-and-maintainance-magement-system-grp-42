@@ -35,13 +35,13 @@ This system allows students and staff to submit maintenance complaints, track th
   - CORS support for frontend integration
   - Environment variable configuration
 
-### Frontend Features (Existing)
+### Frontend Features
 - Responsive dashboard for students/staff/admin
-- Complaint submission form
-- Complaint listing and filtering
-- Role-based navigation
-- Modal dialogs for actions
-- Toast notifications
+- User registration, login, and JWT-based authentication
+- Complaint submission integrated with backend API
+- Complaint listing, filtering, and status tracking
+- Modal dialogs for complaint details and actions
+- Toast notifications and live dashboard updates
 
 ## Tech Stack
 
@@ -102,8 +102,8 @@ This system allows students and staff to submit maintenance complaints, track th
    ```
 
 6. **Open the frontend**
-   - Open `src/campus_complaint_system.html` in a web browser
-   - Or serve it with a local server
+   - Open `frontend/campus_complaint_system.html` in a web browser
+   - Or serve it with a local server such as `npx http-server` or similar
 
 ## Usage
 
@@ -172,7 +172,7 @@ complaint-and-maintainance-magement-system/
 │           ├── authRoutes.js
 │           ├── complaintRoutes.js
 │           └── reportRoutes.js
-└── src/
+└── frontend/
     └── campus_complaint_system.html
 ```
 
@@ -187,11 +187,12 @@ complaint-and-maintainance-magement-system/
 - Improved JWT token handling with expiration
 
 ### Frontend Integration
-The existing HTML frontend provides a complete UI but currently uses mock data. To connect it to the backend:
+The HTML frontend is connected to the backend API and includes:
 
-1. Update JavaScript functions to make API calls instead of using mock data
-2. Implement token storage and authentication flow
-3. Add real-time updates for complaint status changes
+1. JWT authentication with login/register flows
+2. Complaint creation and user-specific complaint listing
+3. Dashboard and complaint counts that refresh after actions
+4. Role-aware navigation for users, staff, and admins
 
 ### Security Considerations
 - JWT tokens expire after 7 days

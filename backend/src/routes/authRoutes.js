@@ -18,11 +18,18 @@ router.post("/register", async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hash });
 
+    // Generate token for auto-login
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || "secret", {
+      expiresIn: "7d"
+    });
+
     return res.status(201).json({
+      token,
       id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      _id: user._id
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -51,12 +58,11 @@ router.post("/login", async (req, res) => {
 
     return res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      _id: user._id
     });
   } catch (error) {
     console.error("Login error:", error);

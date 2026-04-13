@@ -133,4 +133,54 @@ router.put("/status/:id", auth, async (req, res) => {
   }
 });
 
+// generic update complaint
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) return res.status(404).json({ msg: "Complaint not found" });
+
+    // Check permissions
+    if (req.user.role !== "admin" && String(complaint.userId) !== req.user.id) {
+      return res.status(403).json({ msg: "Forbidden" });
+    }
+
+    // Update fields
+    if (req.body.status) complaint.status = req.body.status;
+    if (req.body.assignedTo) complaint.assignedTo = req.body.assignedTo;
+    if (req.body.description) complaint.description = req.body.description;
+    if (req.body.priority) complaint.priority = req.body.priority;
+
+    const updated = await complaint.save();
+    res.json(updated);
+  } catch (error) {
+    console.error("Update complaint error:", error);
+    res.status(500).json({ msg: "Unable to update complaint", error: error.message });
+  }
+});
+
+// get complaints assigned to current user (staff)
+router.get("/pending-for-staff", auth, async (req, res) => {
+  try {
+    const data = await Complaint.find({
+      assignedTo: req.user.id,
+      status: { $ne: "Resolved" }
+    }).populate("userId assignedTo");
+    res.json(data);
+  } catch (error) {
+    console.error("Get staff tasks error:", error);
+    res.status(500).json({ msg: "Unable to fetch tasks", error: error.message });
+  }
+});
+
+// get resolved complaints
+router.get("/resolved", auth, async (req, res) => {
+  try {
+    const data = await Complaint.find({ status: "Resolved" }).populate("userId assignedTo");
+    res.json(data);
+  } catch (error) {
+    console.error("Get resolved complaints error:", error);
+    res.status(500).json({ msg: "Unable to fetch resolved complaints", error: error.message });
+  }
+});
+
 module.exports = router;
