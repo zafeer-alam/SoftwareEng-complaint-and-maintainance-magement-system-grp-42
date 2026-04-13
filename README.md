@@ -1,1 +1,223 @@
-# SoftwareEng-complaint-and-maintainance-magement-system-grp-42
+# Campus Complaint & Maintenance Management System
+
+A full-stack web application for managing campus maintenance complaints, built with Node.js, Express, MongoDB, and a responsive HTML/CSS/JavaScript frontend.
+
+## Overview
+
+This system allows students and staff to submit maintenance complaints, track their status, and enables administrators and maintenance staff to manage assignments and resolutions. The backend provides RESTful APIs for authentication, complaint management, and analytics.
+
+## Features Implemented
+
+### Backend Features
+- **Authentication & Authorization**
+  - User registration and login with JWT tokens
+  - Role-based access control (user, staff, admin)
+  - Secure password hashing with bcrypt
+  - Token expiration and validation
+
+- **Complaint Management**
+  - Create complaints with subject, description, category, location, priority
+  - View complaints (user-specific or admin all)
+  - Filter complaints by status, category, user
+  - Assign complaints to staff (admin only)
+  - Update complaint status (staff)
+  - Delete complaints (admin only)
+
+- **Admin Analytics & Reports**
+  - Complaint status summary
+  - Category breakdown
+  - Staff performance reports
+  - Monthly complaint volume
+
+- **Security & Validation**
+  - Input validation for all endpoints
+  - Proper error handling with JSON responses
+  - CORS support for frontend integration
+  - Environment variable configuration
+
+### Frontend Features (Existing)
+- Responsive dashboard for students/staff/admin
+- Complaint submission form
+- Complaint listing and filtering
+- Role-based navigation
+- Modal dialogs for actions
+- Toast notifications
+
+## Tech Stack
+
+### Backend
+- **Node.js** - Runtime environment
+- **Express.js** - Web framework
+- **MongoDB** - Database
+- **Mongoose** - ODM for MongoDB
+- **JWT** - Authentication tokens
+- **bcryptjs** - Password hashing
+- **cors** - Cross-origin resource sharing
+
+### Frontend
+- **HTML5** - Structure
+- **CSS3** - Styling (custom responsive design)
+- **JavaScript** - Interactivity
+
+### Development Tools
+- **Git** - Version control
+- **npm** - Package management
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd complaint-and-maintainance-magement-system
+   ```
+
+2. **Install backend dependencies**
+   ```bash
+   cd backend
+   npm install
+   ```
+
+3. **Environment Setup**
+   - Copy `.env.example` to `.env`
+   - Update MongoDB URI and JWT secret:
+     ```
+     MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/complaintDB
+     JWT_SECRET=your_secure_jwt_secret_here
+     ```
+
+4. **Start MongoDB**
+   - Ensure MongoDB Atlas cluster is running or local MongoDB is installed
+
+5. **Run the backend**
+   ```bash
+   npm start
+   # or for development
+   npm run dev
+   ```
+
+6. **Open the frontend**
+   - Open `src/campus_complaint_system.html` in a web browser
+   - Or serve it with a local server
+
+## Usage
+
+### API Endpoints
+
+#### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login and get JWT token
+
+#### Complaints
+- `POST /api/complaints` - Create new complaint (authenticated)
+- `GET /api/complaints` - List complaints (with optional filters)
+- `GET /api/complaints/user/:userId` - Get user's complaints
+- `GET /api/complaints/:id` - Get specific complaint
+- `PUT /api/complaints/assign/:id` - Assign complaint to staff (admin)
+- `PUT /api/complaints/status/:id` - Update complaint status (staff)
+- `DELETE /api/complaints/:id` - Delete complaint (admin)
+
+#### Reports (Admin Only)
+- `GET /api/reports/summary` - Complaint status summary
+- `GET /api/reports/categories` - Category breakdown
+- `GET /api/reports/staff/:id` - Staff performance
+- `GET /api/reports/monthly` - Monthly volume
+
+### Example API Usage
+
+**Register a user:**
+```bash
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
+```
+
+**Login:**
+```bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"password123"}'
+```
+
+**Create complaint:**
+```bash
+curl -X POST http://localhost:5000/api/complaints \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"subject":"AC not working","description":"Room AC is broken","category":"Electrical","location":"Hostel A Room 101","priority":"High"}'
+```
+
+## Project Structure
+
+```
+complaint-and-maintainance-magement-system/
+├── README.md
+├── .gitignore
+├── .env.example
+├── backend/
+│   ├── package.json
+│   ├── server.js
+│   └── src/
+│       ├── middleware/
+│       │   └── auth.js
+│       ├── models/
+│       │   ├── User.js
+│       │   └── Complaint.js
+│       └── routes/
+│           ├── authRoutes.js
+│           ├── complaintRoutes.js
+│           └── reportRoutes.js
+└── src/
+    └── campus_complaint_system.html
+```
+
+## Development Notes
+
+### Backend Improvements Made
+- Fixed MongoDB connection timing issues
+- Added comprehensive error handling
+- Implemented role-based permissions
+- Added input validation and sanitization
+- Created admin analytics endpoints
+- Improved JWT token handling with expiration
+
+### Frontend Integration
+The existing HTML frontend provides a complete UI but currently uses mock data. To connect it to the backend:
+
+1. Update JavaScript functions to make API calls instead of using mock data
+2. Implement token storage and authentication flow
+3. Add real-time updates for complaint status changes
+
+### Security Considerations
+- JWT tokens expire after 7 days
+- Passwords are hashed with bcrypt
+- Admin routes are protected with role checks
+- Input validation prevents injection attacks
+
+## Future Enhancements
+
+- **Frontend-Backend Integration**: Connect HTML UI to REST APIs
+- **Real-time Notifications**: WebSocket or push notifications for status updates
+- **File Upload**: Support for complaint attachments/photos
+- **Email Notifications**: Send updates to users and staff
+- **Advanced Filtering**: Date ranges, priority levels
+- **User Profiles**: Editable user information
+- **Audit Logs**: Track all complaint changes
+- **Mobile App**: React Native or PWA version
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the ISC License.
+
+---
+
+**Last Updated**: April 14, 2026
+**Backend Version**: 1.0.0
+**Status**: Backend API complete, frontend UI ready for integration
