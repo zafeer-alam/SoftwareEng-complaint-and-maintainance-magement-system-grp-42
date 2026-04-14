@@ -24,8 +24,11 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   try {
     const options = { method, headers: getHeaders() };
     if (body) options.body = JSON.stringify(body);
+    console.log(`API Call: ${method} ${endpoint}`, { headers: options.headers, body });
     const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    console.log(`Response status: ${response.status}`);
     const data = await response.json();
+    console.log(`Response data:`, data);
     if (!response.ok) {
       throw new Error(data.msg || `API Error: ${response.status}`);
     }
@@ -61,9 +64,9 @@ async function login(email, password) {
   }
 }
 
-async function register(name, email, password) {
+async function register(name, email, password, role = 'user') {
   try {
-    const response = await apiCall('/auth/register', 'POST', { name, email, password });
+    const response = await apiCall('/auth/register', 'POST', { name, email, password, role });
     authToken = response.token;
     const responseUser = response.user || response;
     currentUser = {
@@ -103,11 +106,28 @@ let _uStatus = '';
 let _uCat = '';
 
 // ── NAVIGATION ──
+// Define which pages are accessible by which roles
+const rolePageAccess = {
+  user: ['page-user-home', 'page-user-complaints', 'page-submit'],
+  staff: ['page-staff-home', 'page-staff-completed'],
+  admin: ['page-admin-dash', 'page-admin-complaints', 'page-admin-staff', 'page-reports', 'page-flow', 'page-api', 'page-schema']
+};
+
 function navigate(pageId, navEl) {
   if (!authToken) {
     showToast('❌ Please login first');
     return;
   }
+  
+  // Check if current user's role can access this page
+  const userRole = currentUser?.role || 'user';
+  const allowedPages = rolePageAccess[userRole] || [];
+  
+  if (!allowedPages.includes(pageId)) {
+    showToast('❌ 400 Bad Request: You do not have permission to access this page');
+    return;
+  }
+  
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
@@ -116,6 +136,7 @@ function navigate(pageId, navEl) {
   if (pageId === 'page-user-complaints') renderUserComplaints();
   if (pageId === 'page-admin-dash') renderAdminDash();
   if (pageId === 'page-admin-complaints') renderAdminTable();
+  if (pageId === 'page-admin-staff') renderAdminStaff();
   if (pageId === 'page-staff-home') renderStaffTasks();
   if (pageId === 'page-staff-completed') renderStaffDone();
   if (pageId === 'page-reports') renderReports();
@@ -193,6 +214,24 @@ function complaintCard(c, role) {
   const st = c.status === 'Pending' ? 'status-pending' : c.status === 'In Progress' ? 'status-progress' : 'status-resolved';
   const assignedName = c.assignedTo?.name || c.assignedTo || '';
   const dateStr = c.date || c.createdAt?.split('T')[0] || '';
+  
+  // Show rate button for students when complaint is resolved and not yet rated
+  const rateButton = role === 'user' && c.status === 'Resolved' && !c.rating 
+    ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openRatingModal('${c._id || c.id}')" style="margin-top:8px">⭐ Rate Service</button>`
+    : '';
+  
+  // Show resolve button for staff on active tasks
+  const resolveButton = role === 'staff' && c.status !== 'Resolved'
+    ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); markAsResolved('${c._id || c.id}')" style="margin-top:8px">✓ Mark Resolved</button>`
+    : '';
+  
+  const ratingBadge = c.rating 
+    ? `<div style="margin-top:6px;display:flex;align-items:center;gap:4px;font-size:12px">
+         <span>⭐ ${c.rating}/5</span>
+         ${c.studentApprovedAt ? '<span style="color:var(--accent)">✓ Approved</span>' : ''}
+       </div>`
+    : '';
+  
   return `
   <div class="complaint-card border-l ${st}" onclick="viewComplaint('${c._id || c.id}','${role}')">
     <div class="complaint-header">
@@ -211,6 +250,9 @@ function complaintCard(c, role) {
       </div>
     </div>
     <div style="font-size:12px;color:var(--text3);margin-top:4px">${c._id?.substring(0,8) || c.id}</div>
+    ${ratingBadge}
+    ${rateButton}
+    ${resolveButton}
   </div>`;
 }
 
@@ -332,14 +374,117 @@ async function renderAdminTable() {
   }
 }
 
+// ── ADMIN: STAFF MANAGEMENT ──
+async function renderAdminStaff() {
+  try {
+    const staff = await apiCall('/staff');
+    const tbody = document.getElementById('staff-tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = staff.map(s => `
+      <tr>
+        <td><strong>${s.name}</strong></td>
+        <td><span class="badge badge-assigned">Maintenance</span></td>
+        <td>${s.activeTasksCount}</td>
+        <td>${s.resolvedCount}</td>
+        <td><span class="badge ${s.activeTasksCount > 0 ? 'badge-pending' : 'badge-resolved'}">${s.activeTasksCount > 0 ? 'Not Available' : 'Available'}</span></td>
+        <td><button class="btn btn-secondary btn-sm" onclick="viewStaffProfile('${s._id}')">View</button></td>
+      </tr>`).join('');
+  } catch (error) {
+    console.log('Error rendering admin staff:', error);
+  }
+}
+
+// View staff profile
+async function viewStaffProfile(staffId) {
+  try {
+    // Show modal using proper function
+    openModal('modal-staff-profile');
+    
+    // Show loading state
+    document.getElementById('staff-profile-loading').style.display = 'block';
+    document.getElementById('staff-profile-content').style.display = 'none';
+    document.getElementById('staff-profile-error').style.display = 'none';
+
+    // Fetch staff details
+    const staffData = await apiCall(`/staff/${staffId}`);
+    
+    // Hide loading and show content
+    document.getElementById('staff-profile-loading').style.display = 'none';
+    document.getElementById('staff-profile-content').style.display = 'block';
+
+    // Populate profile data
+    document.getElementById('profile-name').textContent = staffData.name || '-';
+    document.getElementById('profile-email').textContent = staffData.email || '-';
+    document.getElementById('profile-role').textContent = staffData.role || '-';
+    document.getElementById('profile-joined').textContent = staffData.createdAt ? new Date(staffData.createdAt).toLocaleDateString() : '-';
+    document.getElementById('profile-active').textContent = staffData.activeTasksCount || 0;
+    document.getElementById('profile-resolved').textContent = staffData.resolvedCount || 0;
+  } catch (error) {
+    console.error('Error loading staff profile:', error);
+    document.getElementById('staff-profile-loading').style.display = 'none';
+    document.getElementById('staff-profile-error').style.display = 'block';
+    document.getElementById('staff-profile-error').textContent = '❌ ' + (error.message || 'Unable to load staff profile');
+  }
+}
+
 // ── STAFF VIEWS ──
 async function renderStaffTasks() {
   try {
+    // Display staff name
+    if (currentUser && currentUser.name) {
+      document.getElementById('staff-name').textContent = currentUser.name;
+    }
+    
+    console.log("=== STAFF DASHBOARD ===");
+    console.log("Current User:", currentUser);
+    console.log("Auth Token:", authToken);
+    
     const tasks = await apiCall('/complaints/pending-for-staff');
-    document.getElementById('staff-task-count').textContent = tasks.length;
-    document.getElementById('staff-task-list').innerHTML = tasks.length ? tasks.map(c => complaintCard(c, 'staff')).join('') : '<div class="empty-state"><p>No active tasks assigned.</p></div>';
+    console.log("Pending tasks response:", tasks);
+    
+    const resolved = await apiCall('/complaints/resolved');
+    console.log("Resolved tasks response:", resolved);
+    
+    // Calculate stats
+    const assigned = tasks.length;
+    const inProgress = tasks.filter(t => t.status === "In Progress").length;
+    
+    // Get tasks resolved in the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const resolvedThisWeek = resolved.filter(r => new Date(r.updatedAt) >= sevenDaysAgo).length;
+    
+    console.log("Stats - Assigned:", assigned, "InProgress:", inProgress, "ResolvedWeek:", resolvedThisWeek);
+    
+    // Update stat cards
+    const statCards = document.querySelectorAll('#page-staff-home .stat-card');
+    if (statCards.length >= 3) {
+      statCards[0].querySelector('.stat-value').textContent = assigned;
+      statCards[1].querySelector('.stat-value').textContent = inProgress;
+      statCards[2].querySelector('.stat-value').textContent = resolvedThisWeek;
+    }
+    
+    // Update task count alert
+    document.getElementById('staff-task-count').textContent = assigned;
+    
+    // Update task list
+    if (tasks.length > 0) {
+      document.getElementById('staff-task-list').innerHTML = tasks.map(c => {
+        try {
+          return complaintCard(c, 'staff');
+        } catch (err) {
+          console.error("Error rendering complaint card:", err, c);
+          return `<div style="color:red">Error rendering task</div>`;
+        }
+      }).join('');
+    } else {
+      document.getElementById('staff-task-list').innerHTML = '<div class="empty-state"><p>No active tasks assigned.</p></div>';
+    }
   } catch (error) {
-    console.log('Error rendering staff tasks:', error);
+    console.error('Error rendering staff tasks:', error);
+    console.error('Error stack:', error.stack);
+    showToast('❌ Error fetching tasks: ' + error.message);
   }
 }
 
@@ -355,18 +500,38 @@ async function renderStaffDone() {
 // ── REPORTS ──
 async function renderReports() {
   try {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    const vols = [2, 3, 5, 4, 7, 6, 8];
-    const maxV = Math.max(...vols);
+    // Fetch stats (total complaints, resolution rate, avg time, active staff)
+    const stats = await apiCall('/reports/stats');
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards[0].innerHTML = `<div class="stat-label">Total Complaints</div><div class="stat-value">${stats.totalComplaints}</div><div class="stat-sub">All time</div>`;
+    statCards[1].innerHTML = `<div class="stat-label">Avg Resolution Time</div><div class="stat-value" style="font-size:22px">${stats.avgResolutionTime}d</div><div class="stat-sub">Average</div>`;
+    statCards[2].innerHTML = `<div class="stat-label">Resolution Rate</div><div class="stat-value" style="color:var(--accent-mid)">${stats.resolutionRate}%</div><div class="stat-sub">Completed</div>`;
+    statCards[3].innerHTML = `<div class="stat-label">Active Staff</div><div class="stat-value">${stats.activeStaff}</div><div class="stat-sub">On team</div>`;
+    
+    // Fetch monthly chart data
+    const monthlyData = await apiCall('/reports/monthly');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthCounts = new Array(12).fill(0);
+    monthlyData.monthly.forEach(m => {
+      if (m._id && m._id.month) {
+        monthCounts[m._id.month - 1] = m.count;
+      }
+    });
+    const currentMonth = new Date().getMonth();
+    const displayMonths = months.slice(Math.max(0, currentMonth - 6), currentMonth + 1);
+    const displayCounts = monthCounts.slice(Math.max(0, currentMonth - 6), currentMonth + 1);
+    const maxV = Math.max(...displayCounts, 1);
     document.getElementById('monthly-chart').innerHTML = `
       <div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding:8px 0">
-        ${months.map((m, i) => `
+        ${displayMonths.map((m, i) => `
           <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="width:100%;background:var(--accent-mid);border-radius:4px 4px 0 0;height:${(vols[i]/maxV*100).toFixed(0)}px;min-height:8px;opacity:${i===6?1:0.6};transition:all 0.3s" title="${vols[i]} complaints"></div>
+            <div style="width:100%;background:var(--accent-mid);border-radius:4px 4px 0 0;height:${(displayCounts[i]/maxV*100).toFixed(0)}px;min-height:8px;opacity:${i===displayMonths.length-1?1:0.6};transition:all 0.3s" title="${displayCounts[i]} complaints"></div>
             <div style="font-size:10px;color:var(--text3)">${m}</div>
-            <div style="font-size:10px;font-weight:600">${vols[i]}</div>
+            <div style="font-size:10px;font-weight:600">${displayCounts[i]}</div>
           </div>`).join('')}
       </div>`;
+    
+    // Fetch category distribution
     const allComplaints = await apiCall('/complaints');
     const cats = {};
     allComplaints.forEach(c => { cats[c.category] = (cats[c.category] || 0) + 1; });
@@ -378,24 +543,24 @@ async function renderReports() {
         </div>
         <div class="progress-track"><div class="progress-fill" style="width:${(v/total*100).toFixed(0)}%;background:var(--blue)"></div></div>
       </div>`).join('');
-    const staff = [
-      { name: 'Rajan Kumar', assigned: 4, resolved: 14, time: '1.8d' },
-      { name: 'Priya Sharma', assigned: 2, resolved: 9, time: '2.1d' },
-      { name: 'Amit Singh', assigned: 5, resolved: 21, time: '1.5d' },
-      { name: 'Meena Patel', assigned: 1, resolved: 7, time: '3.0d' },
-      { name: 'Suresh Verma', assigned: 3, resolved: 18, time: '2.4d' },
-    ];
+    
+    // Fetch staff performance from database
+    const staffData = await apiCall('/reports/staffPerformance');
     document.getElementById('staff-perf').innerHTML = `
       <div class="table-wrap"><table>
-        <thead><tr><th>Staff Member</th><th>Assigned</th><th>Resolved</th><th>Avg Time</th><th>Rating</th></tr></thead>
-        <tbody>${staff.map(s => `
+        <thead><tr><th>Staff Member</th><th>Assigned</th><th>Resolved</th><th>Avg Time</th><th>Avg Rating</th><th>Ratings Count</th></tr></thead>
+        <tbody>${staffData.staffPerformance.map(s => {
+          const ratingDisplay = s.avgRating === "N/A" ? "—" : `${s.avgRating}⭐`;
+          return `
           <tr>
             <td style="font-weight:500">${s.name}</td>
             <td>${s.assigned}</td>
             <td style="color:var(--accent-mid);font-weight:600">${s.resolved}</td>
-            <td>${s.time}</td>
-            <td>⭐ ${(3.5 + Math.random() * 1.5).toFixed(1)}</td>
-          </tr>`).join('')}
+            <td>${s.avgTime}</td>
+            <td style="font-weight:600;color:var(--orange)">${ratingDisplay}</td>
+            <td>${s.ratedCount}</td>
+          </tr>`;
+        }).join('')}
         </tbody>
       </table></div>`;
   } catch (error) {
@@ -405,6 +570,8 @@ async function renderReports() {
 
 // ── SUBMIT COMPLAINTS ──
 async function submitComplaint() {
+  console.log("submitComplaint called - authToken:", authToken, "currentUser:", currentUser);
+  
   if (!authToken || !currentUser) {
     showToast('❌ Please login first to submit a complaint');
     return;
@@ -414,12 +581,17 @@ async function submitComplaint() {
   const desc = document.getElementById('c-description').value;
   const loc = document.getElementById('c-location').value;
   const pri = document.getElementById('c-priority').value;
+  
+  console.log("Form values:", { category: cat, subject: sub, description: desc, location: loc, priority: pri });
+  
   if (!cat || !sub || !desc || !loc) {
     document.getElementById('submit-alert').innerHTML = '<div class="alert alert-error">⚠️ Please fill all required fields.</div>';
     document.getElementById('submit-alert').style.display = 'block';
+    console.log("Form validation failed");
     return;
   }
   try {
+    console.log("Calling /complaints API with data:", { subject: sub, category: cat, location: loc, description: desc, priority: pri, status: 'Pending' });
     await apiCall('/complaints', 'POST', { subject: sub, category: cat, location: loc, description: desc, priority: pri, status: 'Pending' });
     closeModal('modal-complaint');
     ['c-category', 'c-subject', 'c-description', 'c-location'].forEach(id => document.getElementById(id).value = '');
@@ -428,6 +600,7 @@ async function submitComplaint() {
     renderUserHome();
     renderUserComplaints(_uSearch, _uStatus, _uCat);
   } catch (error) {
+    console.error("Complaint submission error:", error);
     document.getElementById('submit-alert').innerHTML = '<div class="alert alert-error">❌ ' + (error.message || 'Failed to submit') + '</div>';
     document.getElementById('submit-alert').style.display = 'block';
   }
@@ -492,9 +665,114 @@ async function startComplaint(id) {
 }
 
 // ── MODAL AND TOAST HELPERS ──
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+async function openModal(id) { 
+  document.getElementById(id).classList.add('open'); 
+  // Populate staff dropdown when assign modal is opened
+  if (id === 'modal-assign') {
+    await populateAssignStaff();
+  }
+}
+
+async function populateAssignStaff() {
+  try {
+    const staff = await apiCall('/staff');
+    const selectEl = document.getElementById('assign-staff');
+    selectEl.innerHTML = '<option value="">Choose staff...</option>' + 
+      staff.map(s => `<option value="${s._id}">${s.name} — Maintenance</option>`).join('');
+  } catch (error) {
+    console.log('Error populating staff:', error);
+  }
+}
+
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+// ── RATING FUNCTIONALITY ──
+let currentComplaintRating = {
+  id: null,
+  rating: 0
+};
+
+function openRatingModal(complaintId) {
+  currentComplaintRating = { id: complaintId, rating: 0 };
+  document.getElementById('rating-comment').value = '';
+  document.getElementById('rating-text').textContent = 'No rating selected';
+  document.getElementById('submit-rating-btn').disabled = true;
+  document.getElementById('stars-display').textContent = '☆ ☆ ☆ ☆ ☆';
+  document.querySelectorAll('.star-btn').forEach(btn => btn.textContent = '☆');
+  openModal('modal-rate');
+}
+
+function setRating(rating) {
+  currentComplaintRating.rating = rating;
+  const labels = ['', '😞 Poor', '😐 Fair', '😊 Good', '😄 Very Good', '😍 Excellent'];
+  document.getElementById('rating-text').textContent = `${rating} star${rating > 1 ? 's' : ''} - ${labels[rating]}`;
+  
+  // Update star display
+  let stars = '';
+  for (let i = 1; i <= 5; i++) {
+    stars += (i <= rating ? '★' : '☆') + (i < 5 ? ' ' : '');
+  }
+  document.getElementById('stars-display').textContent = stars;
+  
+  // Update buttons
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.textContent = (i + 1) <= rating ? '★' : '☆';
+  });
+  
+  document.getElementById('submit-rating-btn').disabled = false;
+}
+
+async function submitRating() {
+  try {
+    if (currentComplaintRating.rating === 0) {
+      showToast('⚠️ Please select a rating');
+      return;
+    }
+
+    const comment = document.getElementById('rating-comment').value.trim();
+    const result = await apiCall(`/complaints/rate/${currentComplaintRating.id}`, 'PUT', {
+      rating: currentComplaintRating.rating,
+      ratingComment: comment
+    });
+
+    showToast('✅ Thank you for your feedback!');
+    closeModal('modal-rate');
+    
+    // Refresh user complaints
+    setTimeout(() => renderUserComplaints(), 500);
+  } catch (error) {
+    showToast('❌ Failed to submit rating: ' + error.message);
+  }
+}
+
+async function reopenComplaint() {
+  if (!confirm('Are you sure? This will reopen the complaint for further action.')) return;
+
+  try {
+    await apiCall(`/complaints/reopen/${currentComplaintRating.id}`, 'PUT', {});
+    showToast('✅ Complaint reopened for staff to continue work');
+    closeModal('modal-rate');
+    setTimeout(() => renderUserComplaints(), 500);
+  } catch (error) {
+    showToast('❌ Failed to reopen complaint: ' + error.message);
+  }
+}
+
+// Mark complaint as resolved (staff)
+async function markAsResolved(complaintId) {
+  try {
+    await apiCall(`/complaints/status/${complaintId}`, 'PUT', { status: 'Resolved' });
+    showToast('✅ Task marked as resolved! Waiting for student confirmation...');
+    setTimeout(() => {
+      if (currentUser.role === 'staff') {
+        renderStaffTasks();
+      }
+    }, 500);
+  } catch (error) {
+    showToast('❌ Failed to mark as resolved: ' + error.message);
+  }
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -579,6 +857,14 @@ function switchToRegister() {
         <label class="form-label">Email</label>
         <input type="email" class="form-input" id="reg-email" placeholder="your@email.com" />
       </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">Select Your Role</label>
+        <select class="form-select" id="reg-role">
+          <option value="user">👤 Student / Staff (User)</option>
+          <option value="staff">🔧 Maintenance Staff</option>
+          <option value="admin">🛡️ Admin</option>
+        </select>
+      </div>
       <div class="form-group" style="margin-bottom:24px">
         <label class="form-label">Password</label>
         <input type="password" class="form-input" id="reg-password" placeholder="••••••••" />
@@ -619,15 +905,16 @@ async function handleRegister() {
   const name = document.getElementById('reg-name').value;
   const email = document.getElementById('reg-email').value;
   const password = document.getElementById('reg-password').value;
+  const role = document.getElementById('reg-role')?.value || 'user';
   if (!name || !email || !password) {
     showToast('⚠️ All fields are required');
     return;
   }
   try {
-    const response = await register(name, email, password);
+    const response = await register(name, email, password, role);
     document.getElementById('login-overlay')?.remove();
-    const role = response.role || 'user';
-    switchRole(role === 'admin' ? 'admin' : role === 'staff' ? 'staff' : 'user');
+    const userRole = response.role || 'user';
+    switchRole(userRole === 'admin' ? 'admin' : userRole === 'staff' ? 'staff' : 'user');
   } catch (error) {
     console.log('Registration failed:', error);
   }

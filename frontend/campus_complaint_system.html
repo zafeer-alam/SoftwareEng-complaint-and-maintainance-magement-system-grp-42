@@ -95,12 +95,7 @@
       <div class="form-group">
         <label class="form-label">Select Staff Member</label>
         <select class="form-select" id="assign-staff">
-          <option value="">Choose staff...</option>
-          <option value="S001">Rajan Kumar — Electrician</option>
-          <option value="S002">Priya Sharma — Plumber</option>
-          <option value="S003">Amit Singh — IT Support</option>
-          <option value="S004">Meena Patel — Sanitation</option>
-          <option value="S005">Suresh Verma — General Maintenance</option>
+          <option value="">Loading staff...</option>
         </select>
       </div>
       <div class="form-group">
@@ -111,6 +106,92 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-assign')">Cancel</button>
       <button class="btn btn-primary" onclick="confirmAssign()">Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: View Staff Profile -->
+<div class="modal-backdrop" id="modal-staff-profile">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h2>Staff Profile</h2>
+      <button class="close-btn" onclick="closeModal('modal-staff-profile')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="staff-profile-error" style="display:none"></div>
+      <div id="staff-profile-content" style="display:none">
+        <div style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
+            <span style="font-weight:500;color:var(--text3)">Name</span>
+            <strong id="profile-name">-</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
+            <span style="font-weight:500;color:var(--text3)">Email</span>
+            <strong id="profile-email">-</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
+            <span style="font-weight:500;color:var(--text3)">Role</span>
+            <strong id="profile-role">-</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
+            <span style="font-weight:500;color:var(--text3)">Member Since</span>
+            <strong id="profile-joined">-</strong>
+          </div>
+        </div>
+        <div class="card-grid card-grid-2" style="margin-bottom:20px">
+          <div class="stat-card">
+            <div class="stat-label">Active Tasks</div>
+            <div class="stat-value" id="profile-active">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Completed Tasks</div>
+            <div class="stat-value" id="profile-resolved">0</div>
+          </div>
+        </div>
+      </div>
+      <div id="staff-profile-loading" style="text-align:center;padding:20px">
+        <div style="color:var(--text3)">Loading staff profile...</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-staff-profile')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Rate Complaint -->
+<div class="modal-backdrop" id="modal-rate">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2>Rate & Confirm Resolution</h2>
+      <button class="close-btn" onclick="closeModal('modal-rate')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;margin-bottom:20px">
+        <p style="color:var(--text2);font-size:14px">Was this issue resolved to your satisfaction?</p>
+      </div>
+      
+      <!-- Star Rating -->
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:32px;letter-spacing:8px;margin-bottom:8px" id="stars-display">☆ ☆ ☆ ☆ ☆</div>
+        <div style="display:flex;justify-content:center;gap:8px">
+          <button class="star-btn" onclick="setRating(1)" data-rating="1" style="font-size:24px;background:none;border:none;cursor:pointer">☆</button>
+          <button class="star-btn" onclick="setRating(2)" data-rating="2" style="font-size:24px;background:none;border:none;cursor:pointer">☆</button>
+          <button class="star-btn" onclick="setRating(3)" data-rating="3" style="font-size:24px;background:none;border:none;cursor:pointer">☆</button>
+          <button class="star-btn" onclick="setRating(4)" data-rating="4" style="font-size:24px;background:none;border:none;cursor:pointer">☆</button>
+          <button class="star-btn" onclick="setRating(5)" data-rating="5" style="font-size:24px;background:none;border:none;cursor:pointer">☆</button>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text3)"><span id="rating-text">No rating selected</span></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Feedback (Optional)</label>
+        <textarea class="form-textarea" id="rating-comment" placeholder="Share your feedback about the resolution..." style="min-height:80px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="reopenComplaint()">Reopen Issue</button>
+      <button class="btn btn-primary" id="submit-rating-btn" onclick="submitRating()" disabled>Confirm & Rate</button>
     </div>
   </div>
 </div>
@@ -177,18 +258,6 @@
         <button class="nav-item" onclick="navigate('page-reports', this)">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Reports & Analytics
-        </button>
-        <button class="nav-item" onclick="navigate('page-flow', this)">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="12" x2="5" y2="16"/><line x1="12" y1="12" x2="19" y2="16"/></svg>
-          System Flow
-        </button>
-        <button class="nav-item" onclick="navigate('page-api', this)">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          API Reference
-        </button>
-        <button class="nav-item" onclick="navigate('page-schema', this)">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-          DB Schema
         </button>
       </nav>
     </div>
@@ -348,22 +417,22 @@
         <span class="topbar-title">My Assigned Tasks</span>
       </div>
       <div style="padding:28px">
-        <div class="alert alert-info">Logged in as: <strong>Rajan Kumar</strong> (Electrician). You have <strong id="staff-task-count">2</strong> active tasks.</div>
+        <div class="alert alert-info">Logged in as: <strong id="staff-name">Staff Member</strong>. You have <strong id="staff-task-count">0</strong> active tasks.</div>
         <div class="card-grid card-grid-3" style="margin-bottom:20px">
           <div class="stat-card">
             <div class="stat-icon" style="background:var(--blue-light)">📋</div>
             <div class="stat-label">Assigned</div>
-            <div class="stat-value" style="color:var(--blue)">2</div>
+            <div class="stat-value" style="color:var(--blue)">0</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="background:var(--orange-light)">⚡</div>
             <div class="stat-label">In Progress</div>
-            <div class="stat-value" style="color:var(--orange)">1</div>
+            <div class="stat-value" style="color:var(--orange)">0</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="background:var(--accent-light)">✅</div>
             <div class="stat-label">Resolved This Week</div>
-            <div class="stat-value" style="color:var(--accent-mid)">5</div>
+            <div class="stat-value" style="color:var(--accent-mid)">0</div>
           </div>
         </div>
         <div class="card">
@@ -489,16 +558,11 @@
       <div style="padding:28px">
         <div class="card" style="padding:0;overflow:hidden">
           <div class="table-wrap">
-            <table>
+            <table id="staff-table">
               <thead>
                 <tr><th>Name</th><th>Role / Skill</th><th>Active Tasks</th><th>Resolved</th><th>Status</th><th>Actions</th></tr>
               </thead>
-              <tbody>
-                <tr><td><strong>Rajan Kumar</strong></td><td><span class="badge badge-cat">Electrician</span></td><td>2</td><td>14</td><td><span class="badge badge-resolved">Available</span></td><td><button class="btn btn-secondary btn-sm" onclick="showToast('Viewing Rajan Kumar profile')">View</button></td></tr>
-                <tr><td><strong>Priya Sharma</strong></td><td><span class="badge badge-progress">Plumber</span></td><td>1</td><td>9</td><td><span class="badge badge-resolved">Available</span></td><td><button class="btn btn-secondary btn-sm" onclick="showToast('Viewing Priya Sharma profile')">View</button></td></tr>
-                <tr><td><strong>Amit Singh</strong></td><td><span class="badge badge-cat">IT Support</span></td><td>3</td><td>21</td><td><span class="badge badge-pending">Busy</span></td><td><button class="btn btn-secondary btn-sm" onclick="showToast('Viewing Amit Singh profile')">View</button></td></tr>
-                <tr><td><strong>Meena Patel</strong></td><td><span class="badge" style="background:var(--teal-light);color:var(--teal)">Sanitation</span></td><td>0</td><td>7</td><td><span class="badge badge-resolved">Available</span></td><td><button class="btn btn-secondary btn-sm" onclick="showToast('Viewing Meena Patel profile')">View</button></td></tr>
-                <tr><td><strong>Suresh Verma</strong></td><td><span class="badge badge-assigned">General Maint.</span></td><td>1</td><td>18</td><td><span class="badge badge-resolved">Available</span></td><td><button class="btn btn-secondary btn-sm" onclick="showToast('Viewing Suresh Verma profile')">View</button></td></tr>
+              <tbody id="staff-tbody">
               </tbody>
             </table>
           </div>
@@ -516,10 +580,10 @@
       </div>
       <div style="padding:28px">
         <div class="card-grid card-grid-4" style="margin-bottom:20px">
-          <div class="stat-card"><div class="stat-label">Total Complaints</div><div class="stat-value">20</div><div class="stat-sub">All time</div></div>
-          <div class="stat-card"><div class="stat-label">Avg Resolution Time</div><div class="stat-value" style="font-size:22px">2.4d</div><div class="stat-sub">Last 30 days</div></div>
-          <div class="stat-card"><div class="stat-label">Resolution Rate</div><div class="stat-value" style="color:var(--accent-mid)">80%</div><div class="stat-sub">This month</div></div>
-          <div class="stat-card"><div class="stat-label">Active Staff</div><div class="stat-value">5</div><div class="stat-sub">On duty</div></div>
+          <div class="stat-card"><div class="stat-label">Total Complaints</div><div class="stat-value">0</div><div class="stat-sub">All time</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Resolution Time</div><div class="stat-value" style="font-size:22px">0d</div><div class="stat-sub">Average</div></div>
+          <div class="stat-card"><div class="stat-label">Resolution Rate</div><div class="stat-value" style="color:var(--accent-mid)">0%</div><div class="stat-sub">Completed</div></div>
+          <div class="stat-card"><div class="stat-label">Active Staff</div><div class="stat-value">0</div><div class="stat-sub">On team</div></div>
         </div>
         <div class="card-grid card-grid-2">
           <div class="card">

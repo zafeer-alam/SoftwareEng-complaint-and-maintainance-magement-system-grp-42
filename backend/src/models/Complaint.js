@@ -9,7 +9,13 @@ const complaintSchema = new mongoose.Schema({
   priority: { type: String, default: "Medium" },
   attachments: [{ type: String }],
   status: { type: String, default: "Pending" },
-  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  // Rating & Approval fields
+  rating: { type: Number, min: 1, max: 5 },
+  ratingComment: String,
+  studentApprovedAt: Date,
+  staffResolvedAt: Date,
+  reopenedAt: Date
 }, { timestamps: true });
 
 module.exports = mongoose.model("Complaint", complaintSchema);

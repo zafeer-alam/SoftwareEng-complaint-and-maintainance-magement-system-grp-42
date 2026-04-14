@@ -15,6 +15,7 @@ app.use(express.json());
 // ROUTES
 app.use("/api/auth", require("./src/routes/authRoutes"));
 app.use("/api/complaints", require("./src/routes/complaintRoutes"));
+app.use("/api/staff", require("./src/routes/staffRoutes"));
 app.use("/api/reports", require("./src/routes/reportRoutes"));
 
 // TEST ROUTE
@@ -33,7 +34,11 @@ if (!mongoUri) {
 async function createDemoUsers() {
   const demoUsers = [
     { name: "Admin User", email: "admin@e.com", password: "admin123", role: "admin" },
-    { name: "Staff User", email: "staff@e.com", password: "staff123", role: "staff" }
+    { name: "Staff User", email: "staff@e.com", password: "staff123", role: "staff" },
+    { name: "Student User", email: "student@e.com", password: "student123", role: "user" },
+    { name: "Rajan Kumar", email: "rajan@e.com", password: "rajan123", role: "staff" },
+    { name: "Priya Sharma", email: "priya@e.com", password: "priya123", role: "staff" },
+    { name: "Amit Singh", email: "amit@e.com", password: "amit123", role: "staff" }
   ];
 
   for (const userData of demoUsers) {
@@ -46,7 +51,7 @@ async function createDemoUsers() {
         password: passwordHash,
         role: userData.role
       });
-      console.log(`Demo user created: ${userData.email}`);
+      console.log(`Demo user created: ${userData.email} (${userData.role})`);
     } else {
       console.log(`Demo user already exists: ${userData.email}`);
     }
