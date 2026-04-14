@@ -233,6 +233,26 @@ tr:hover td { background: var(--bg); }
 .text-uppercase { text-transform: uppercase; }
 .letter-spacing-08em { letter-spacing: 0.08em; }
 .letter-spacing-1em { letter-spacing: 0.1em; }
+
+/* Star Rating Buttons */
+.star-btn {
+  font-size: 28px !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 8px 6px !important;
+  transition: transform 0.2s ease, color 0.2s ease;
+  color: #9e9b93;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+  color: var(--orange);
+}
+
+.star-btn:active {
+  transform: scale(0.95);
+}
 .bg-surface { background: var(--surface); }
 .bg-bg { background: var(--bg); }
 .bg-surface2 { background: var(--surface2); }

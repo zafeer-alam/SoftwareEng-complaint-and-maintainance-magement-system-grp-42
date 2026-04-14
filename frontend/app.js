@@ -500,13 +500,29 @@ async function renderStaffDone() {
 // ── REPORTS ──
 async function renderReports() {
   try {
-    // Fetch stats (total complaints, resolution rate, avg time, active staff)
-    const stats = await apiCall('/reports/stats');
+    // Fetch staff performance first
+    const staffData = await apiCall('/reports/staffPerformance');
+    const allStaff = staffData.staffPerformance || [];
+    
+    // Calculate stats from staff data
+    let totalResolved = 0;
+    let totalAssigned = 0;
+    allStaff.forEach(s => {
+      totalAssigned += s.assigned || 0;
+      totalResolved += s.resolved || 0;
+    });
+    const totalComplaints = totalAssigned + totalResolved;
+    const resolutionRate = totalComplaints > 0 ? Math.round((totalResolved / totalComplaints) * 100) : 0;
+    const activeStaff = allStaff.length;
+    
     const statCards = document.querySelectorAll('.stat-card');
-    statCards[0].innerHTML = `<div class="stat-label">Total Complaints</div><div class="stat-value">${stats.totalComplaints}</div><div class="stat-sub">All time</div>`;
-    statCards[1].innerHTML = `<div class="stat-label">Avg Resolution Time</div><div class="stat-value" style="font-size:22px">${stats.avgResolutionTime}d</div><div class="stat-sub">Average</div>`;
-    statCards[2].innerHTML = `<div class="stat-label">Resolution Rate</div><div class="stat-value" style="color:var(--accent-mid)">${stats.resolutionRate}%</div><div class="stat-sub">Completed</div>`;
-    statCards[3].innerHTML = `<div class="stat-label">Active Staff</div><div class="stat-value">${stats.activeStaff}</div><div class="stat-sub">On team</div>`;
+    statCards[0].innerHTML = `<div class="stat-label">Total Complaints</div><div class="stat-value">${totalComplaints}</div><div class="stat-sub">All time</div>`;
+    statCards[1].innerHTML = `<div class="stat-label">Avg Resolution Time</div><div class="stat-value" style="font-size:22px">0d</div><div class="stat-sub">Average</div>`;
+    statCards[2].innerHTML = `<div class="stat-label">Resolution Rate</div><div class="stat-value" style="color:var(--accent-mid)">${resolutionRate}%</div><div class="stat-sub">Completed</div>`;
+    statCards[3].innerHTML = `<div class="stat-label">Active Staff</div><div class="stat-value">${activeStaff}</div><div class="stat-sub">On team</div>`;
+    
+    // Fetch all complaints for category and monthly data
+    const allComplaints = await apiCall('/complaints');
     
     // Fetch monthly chart data
     const monthlyData = await apiCall('/reports/monthly');
@@ -531,8 +547,7 @@ async function renderReports() {
           </div>`).join('')}
       </div>`;
     
-    // Fetch category distribution
-    const allComplaints = await apiCall('/complaints');
+    // Category distribution
     const cats = {};
     allComplaints.forEach(c => { cats[c.category] = (cats[c.category] || 0) + 1; });
     const total = allComplaints.length || 1;
@@ -544,12 +559,11 @@ async function renderReports() {
         <div class="progress-track"><div class="progress-fill" style="width:${(v/total*100).toFixed(0)}%;background:var(--blue)"></div></div>
       </div>`).join('');
     
-    // Fetch staff performance from database
-    const staffData = await apiCall('/reports/staffPerformance');
+    // Staff Performance Table
     document.getElementById('staff-perf').innerHTML = `
       <div class="table-wrap"><table>
         <thead><tr><th>Staff Member</th><th>Assigned</th><th>Resolved</th><th>Avg Time</th><th>Avg Rating</th><th>Ratings Count</th></tr></thead>
-        <tbody>${staffData.staffPerformance.map(s => {
+        <tbody>${allStaff.map(s => {
           const ratingDisplay = s.avgRating === "N/A" ? "—" : `${s.avgRating}⭐`;
           return `
           <tr>
@@ -564,7 +578,8 @@ async function renderReports() {
         </tbody>
       </table></div>`;
   } catch (error) {
-    console.log('Error rendering reports:', error);
+    console.error('Error rendering reports:', error);
+    showToast('⚠️ Error loading reports: ' + error.message);
   }
 }
 

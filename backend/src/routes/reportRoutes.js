@@ -13,20 +13,28 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
   try {
     const totalComplaints = await Complaint.countDocuments();
     const resolvedCount = await Complaint.countDocuments({ status: "Resolved" });
-    const resolutionRate = totalComplaints > 0 ? ((resolvedCount / totalComplaints) * 100).toFixed(0) : 0;
+    const resolutionRate = totalComplaints > 0 ? Math.round((resolvedCount / totalComplaints) * 100) : 0;
     
     const resolved = await Complaint.find({ status: "Resolved" }).select("createdAt updatedAt");
-    const avgTime = resolved.length > 0 
-      ? (resolved.reduce((sum, c) => sum + (new Date(c.updatedAt) - new Date(c.createdAt)), 0) / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
-      : 0;
+    let avgTime = 0;
+    if (resolved.length > 0) {
+      const totalMs = resolved.reduce((sum, c) => {
+        const created = new Date(c.createdAt).getTime();
+        const updated = new Date(c.updatedAt).getTime();
+        return sum + (updated - created);
+      }, 0);
+      avgTime = (totalMs / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1);
+    }
     
     const activeStaff = await User.countDocuments({ role: "staff" });
     
+    console.log("Stats Debug:", { totalComplaints, resolvedCount, resolutionRate, avgTime, activeStaff });
+    
     res.json({
-      totalComplaints,
-      resolutionRate,
-      avgResolutionTime: avgTime,
-      activeStaff
+      totalComplaints: parseInt(totalComplaints),
+      resolutionRate: parseInt(resolutionRate),
+      avgResolutionTime: parseFloat(avgTime),
+      activeStaff: parseInt(activeStaff)
     });
   } catch (error) {
     console.error("Reports stats error:", error);
