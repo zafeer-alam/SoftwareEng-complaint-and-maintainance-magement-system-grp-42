@@ -822,7 +822,12 @@ window.addEventListener('load', () => {
         </div>
         <div class="form-group" style="margin-bottom:24px">
           <label class="form-label">Password</label>
-          <input type="password" class="form-input" id="login-password" placeholder="••••••••" />
+          <div style="position:relative">
+            <input type="password" class="form-input" id="login-password" placeholder="••••••••" />
+            <button type="button" onclick="togglePassword('login-password')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3)">
+              <i id="icon-login-password" class="bi bi-eye-slash"></i>
+            </button>
+          </div>
         </div>
         <button class="btn btn-primary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="handleLogin()">Login</button>
         <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="switchToRegister()">Create Account</button>
@@ -882,7 +887,12 @@ function switchToRegister() {
       </div>
       <div class="form-group" style="margin-bottom:24px">
         <label class="form-label">Password</label>
-        <input type="password" class="form-input" id="reg-password" placeholder="••••••••" />
+        <div style="position:relative">
+          <input type="password" class="form-input" id="reg-password" placeholder="••••••••" />
+          <button type="button" onclick="togglePassword('reg-password')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3)">
+            <i id="icon-reg-password" class="bi bi-eye-slash"></i>
+          </button>
+        </div>
       </div>
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="handleRegister()">Create Account</button>
       <button class="btn btn-secondary" style="width:100%;cursor:pointer" onclick="switchToLogin()">Back to Login</button>
@@ -905,7 +915,12 @@ function switchToLogin() {
       </div>
       <div class="form-group" style="margin-bottom:24px">
         <label class="form-label">Password</label>
-        <input type="password" class="form-input" id="login-password" placeholder="••••••••" />
+        <div style="position:relative">
+          <input type="password" class="form-input" id="login-password" placeholder="••••••••" />
+          <button type="button" onclick="togglePassword('login-password')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3)">
+            <i id="icon-login-password" class="bi bi-eye-slash"></i>
+          </button>
+        </div>
       </div>
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="handleLogin()">Login</button>
       <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="switchToRegister()">Create Account</button>
@@ -933,4 +948,13 @@ async function handleRegister() {
   } catch (error) {
     console.log('Registration failed:', error);
   }
+}
+
+function togglePassword(inputId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(`icon-${inputId}`);
+  if (!input || !icon) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  icon.className = isHidden ? 'bi bi-eye' : 'bi bi-eye-slash';
 }
