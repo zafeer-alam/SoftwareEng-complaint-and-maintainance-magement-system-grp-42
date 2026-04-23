@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");   // JWT
 
 exports.protect = (req, res, next) => {
   let token;
