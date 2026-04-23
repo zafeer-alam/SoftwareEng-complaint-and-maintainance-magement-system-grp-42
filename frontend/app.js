@@ -924,10 +924,7 @@ function switchToLogin() {
       </div>
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="handleLogin()">Login</button>
       <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;cursor:pointer" onclick="switchToRegister()">Create Account</button>
-      //  <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:16px">
-      //   Demo: admin@e.com / admin123<br/>
-      //   or staff@e.com / staff123
-      // </div> 
+       
     </div>`;
 }
 
