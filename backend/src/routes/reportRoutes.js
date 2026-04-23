@@ -1,21 +1,13 @@
-/**
- * Report Routes Module
- * Handles admin analytics and reporting endpoints for the Campus Complaint Management System.
- * Provides endpoints for complaint statistics, summaries, categories, staff performance, and monthly reports.
- */
-
 const router = require("express").Router();
 const mongoose = require("mongoose");
 const Complaint = require("../models/Complaint");
 const User = require("../models/User");
 const auth = require("../middleware/auth");
 
-
 const requireAdmin = (req, res, next) => {
   if (req.user.role !== "admin") return res.status(403).json({ msg: "Forbidden" });
   next();
 };
-
 
 router.get("/stats", auth, requireAdmin, async (req, res) => {
   try {
@@ -36,10 +28,7 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
     
     const activeStaff = await User.countDocuments({ role: "staff" });
     
- 
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Stats Debug:", { totalComplaints, resolvedCount, resolutionRate, avgTime, activeStaff });
-    }
+    console.log("Stats Debug:", { totalComplaints, resolvedCount, resolutionRate, avgTime, activeStaff });
     
     res.json({
       totalComplaints: parseInt(totalComplaints),
@@ -50,8 +39,8 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Reports stats error:", error);
     res.status(500).json({ msg: "Unable to fetch stats", error: error.message });
+  }
 });
-
 
 router.get("/summary", auth, requireAdmin, async (req, res) => {
   try {
@@ -71,7 +60,6 @@ router.get("/summary", auth, requireAdmin, async (req, res) => {
   }
 });
 
-
 router.get("/categories", auth, requireAdmin, async (req, res) => {
   try {
     const categories = await Complaint.aggregate([
@@ -88,13 +76,8 @@ router.get("/categories", auth, requireAdmin, async (req, res) => {
 router.get("/staff/:id", auth, requireAdmin, async (req, res) => {
   try {
     const staffId = req.params.id;
-    
-    if (!mongoose.Types.ObjectId.isValid(staffId)) {
-      return res.status(400).json({ msg: "Invalid staff ID format" });
-    }
-    
     const tasks = await Complaint.aggregate([
-      { $match: { assignedTo: new mongoose.Types.ObjectId(staffId) } },
+      { $match: { assignedTo: mongoose.Types.ObjectId(staffId) } },
       { $group: { _id: "$status", count: { $sum: 1 } } }
     ]);
     res.json({ staffId, tasks });
@@ -104,10 +87,6 @@ router.get("/staff/:id", auth, requireAdmin, async (req, res) => {
   }
 });
 
-/**
- * GET /api/reports/monthly
- * Provides monthly complaint volume data, grouped by year and month
- */
 router.get("/monthly", auth, requireAdmin, async (req, res) => {
   try {
     const monthly = await Complaint.aggregate([
@@ -126,7 +105,6 @@ router.get("/monthly", auth, requireAdmin, async (req, res) => {
   }
 });
 
-
 router.get("/staffPerformance", auth, requireAdmin, async (req, res) => {
   try {
     const staff = await User.find({ role: "staff" }).select("_id name email");
@@ -137,18 +115,13 @@ router.get("/staffPerformance", auth, requireAdmin, async (req, res) => {
       const resolvedComplaints = await Complaint.find({ assignedTo: s._id, status: "Resolved" }).select("createdAt updatedAt rating");
       let avgTime = "N/A";
       if (resolvedComplaints.length > 0) {
-        const totalTime = resolvedComplaints.reduce((sum, c) => {
-          const created = new Date(c.createdAt).getTime();
-          const updated = new Date(c.updatedAt).getTime();
-
-          return updated > created ? sum + (updated - created) : sum;
-        }, 0);
+        const totalTime = resolvedComplaints.reduce((sum, c) => sum + (new Date(c.updatedAt) - new Date(c.createdAt)), 0);
         const avgMs = totalTime / resolvedComplaints.length;
         const avgDays = (avgMs / (1000 * 60 * 60 * 24)).toFixed(1);
         avgTime = avgDays + "d";
       }
 
-
+      // Calculate average rating from rated complaints
       const ratedComplaints = resolvedComplaints.filter(c => c.rating);
       let avgRating = "N/A";
       if (ratedComplaints.length > 0) {
@@ -173,6 +146,5 @@ router.get("/staffPerformance", auth, requireAdmin, async (req, res) => {
     res.status(500).json({ msg: "Unable to fetch staff performance", error: error.message });
   }
 });
-
 
 module.exports = router;
